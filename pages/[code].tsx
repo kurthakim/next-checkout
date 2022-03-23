@@ -1,8 +1,10 @@
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { SyntheticEvent, useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import axios from 'axios';
 import constants from '../constants';
+
+declare var Stripe;
 
 export default function Home() {
   const router = useRouter();
@@ -10,6 +12,13 @@ export default function Home() {
   const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
   const [quantities, setQuantities] = useState([]);
+  const [first_name, setFirstName] = useState('');
+  const [last_name, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+  const [country, setCountry] = useState('');
+  const [city, setCity] = useState('');
+  const [zip, setZip] = useState('');
 
   useEffect(() => {
     if (code !== undefined) {
@@ -33,7 +42,7 @@ export default function Home() {
       quantities.map((q) => {
         if (q.product_id === id) {
           return {
-            ...q,
+            product_id: id,
             quantity,
           };
         }
@@ -49,6 +58,28 @@ export default function Home() {
 
       return s + product.price * q.quantity;
     }, 0);
+  };
+
+  const submit = async (e: SyntheticEvent) => {
+    e.preventDefault();
+
+    const { data } = await axios.post(`${constants.endpoint}/orders`, {
+      first_name,
+      last_name,
+      email,
+      address,
+      country,
+      city,
+      zip,
+      code,
+      products: quantities,
+    });
+
+    const stripe = new Stripe(constants.stripe_key);
+
+    stripe.redirectToCheckout({
+      sessionId: data.id,
+    });
   };
 
   return (
@@ -108,7 +139,7 @@ export default function Home() {
 
           <div className="col-md-7 col-lg-8">
             <h4 className="mb-3">Personal Info</h4>
-            <form className="needs-validation" noValidate>
+            <form className="needs-validation" noValidate onSubmit={submit}>
               <div className="row g-3">
                 <div className="col-sm-6">
                   <label htmlFor="firstName" className="form-label">
@@ -120,6 +151,7 @@ export default function Home() {
                     id="firstName"
                     placeholder="First Name"
                     required
+                    onChange={(e) => setFirstName(e.target.value)}
                   />
                 </div>
 
@@ -133,6 +165,7 @@ export default function Home() {
                     id="lastName"
                     placeholder="Last Name"
                     required
+                    onChange={(e) => setLastName(e.target.value)}
                   />
                 </div>
 
@@ -146,6 +179,7 @@ export default function Home() {
                     id="email"
                     placeholder="you@example.com"
                     required
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
 
@@ -159,6 +193,7 @@ export default function Home() {
                     id="address"
                     placeholder="1234 Main St"
                     required
+                    onChange={(e) => setAddress(e.target.value)}
                   />
                 </div>
 
@@ -170,6 +205,7 @@ export default function Home() {
                     className="form-control"
                     id="country"
                     placeholder="Country"
+                    onChange={(e) => setCountry(e.target.value)}
                   />
                 </div>
 
@@ -181,6 +217,7 @@ export default function Home() {
                     className="form-control"
                     id="city"
                     placeholder="City"
+                    onChange={(e) => setCity(e.target.value)}
                   />
                 </div>
 
@@ -193,6 +230,7 @@ export default function Home() {
                     className="form-control"
                     id="zip"
                     placeholder="Zip"
+                    onChange={(e) => setZip(e.target.value)}
                   />
                 </div>
               </div>
